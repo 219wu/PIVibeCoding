@@ -78,6 +78,10 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 - 按计划逐任务实现，每完成一个子任务同步一次进度
 - 遵循项目既有风格（命名/注释/结构）
 - 框架调用检查点：确认 API 参数传递链完整（验证阶段会用真实调用/mock 拦截证明）
+- **安全命令检查**：执行破坏性/危险命令前先跑
+  `python ~/.pi/agent/skills/vibekit/scripts/security.py check-command "<命令>"`——
+  rm -rf 根目录、git push --force、drop table 等会被拦截；
+  触碰密钥文件前先 `security.py check-path <路径>`
 - 产出：**代码改动**
 - **检查点 B（执行后）**：运行
   `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`，
@@ -111,6 +115,9 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 - **决策记录落盘（ADR）**：有决策就运行 `python ~/.pi/agent/skills/vibekit/scripts/adr.py new "标题"`
   生成 docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/决策理由/影响——
   对抗"AI 不懂为什么选 A 不选 B"的隐性上下文问题
+- **安装安全 hooks**（新仓库首次）：
+  `python ~/.pi/agent/skills/vibekit/scripts/security.py install-hooks`——
+  pre-commit 自动跑检查点 B + 敏感扫描，pre-push 自动扫描待推送内容（最后防线）
 - 按项目规范提交（git commit，清晰的变更摘要）
 - 更新状态文件为完成
 - 产出：**变更记录 + ADR（如有决策）+ 交付总结**
@@ -157,6 +164,10 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
    不接触编写者的自我解释；验证结论由验证阶段独立得出
 9. **思考级别建议**：构思/审查用 high，执行可用 low（提速省钱），由模型自行把握
 10. **ADR 强制**：⑦集成有决策必须落盘 docs/decisions/（adr.py），不许只口头说
+11. **安全命令红线**：破坏性命令（强制推送/删库/递归删除/管道执行远程脚本）
+    执行前必须过 `security.py check-command`；密钥文件（auth.json/.env/私钥）
+    禁止读写——`check-path` 会拦截；git hooks（pre-commit/pre-push）已安装时
+    自动执行检查点 B 和敏感扫描，不得绕过
 
 ## 六、错误用法示例（本项目参考教训）
 

@@ -35,6 +35,7 @@ Vibe Coding 的核心矛盾：**AI 写代码快，但"快"不等于"对"**。
 | `adr.py` | ADR 决策记录落盘（new / list / status） |
 | `vibe_state.py` | 任务状态追踪（start / phase / next / status / done） |
 | `sync_skill.py` | 同步 skill 到安装副本（--check 对比 / --yes 覆盖） |
+| `security.py` | 安全模块：check-command 危险命令拦截 / check-path 敏感路径 / scan 敏感内容 / install-hooks 安装 git hooks |
 
 ## 状态追踪（.vibe/state.json）
 

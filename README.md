@@ -86,6 +86,7 @@ PIVibeCoding/
 | `prepare_review.py` | 审查输入包生成器：只打包 diff + 验收标准 + 审查指令，**排除编写者的自我解释**（信息隔离） |
 | `adr.py` | ADR 决策记录落盘 docs/decisions/：把"为什么选 A 不选 B"变成可回溯的资产 |
 | `sync_skill.py` | 项目 skill → 安装副本同步（--check 对比，防版本漂移） |
+| `security.py` | 安全模块：危险命令拦截、敏感路径/内容扫描、git hooks 安装（commit/push 前自动检查） |
 
 详见 [docs/workflow.md](docs/workflow.md)。
 
