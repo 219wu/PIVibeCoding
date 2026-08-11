@@ -91,10 +91,19 @@ def cmd_phase(args) -> int:
         print(f"[vibekit] 错误：未知阶段 {phase}，可用: {PHASES}")
         return 1
     state["phases"][phase] = "done"
-    # 找下一个未完成阶段
+    # 各任务类型的流程（small 跳过计划/隔离/审查；fix 跳过构思/计划）
+    SKIP = {
+        "small": {"plan", "isolate", "review"},
+        "fix": {"conceive", "plan"},
+        "large": set(),
+    }
+    skip = SKIP.get(state.get("task_type", "large"), set())
+    # 找下一个未完成且属于本任务类型的阶段
     order = ["conceive", "plan", "isolate", "execute", "verify", "review", "integrate"]
     next_phase = None
     for p in order:
+        if p in skip:
+            continue
         if state["phases"].get(p) != "done":
             next_phase = p
             break

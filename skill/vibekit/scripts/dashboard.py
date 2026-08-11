@@ -264,6 +264,10 @@ def main():
     parser.add_argument("--dir", default=".", help="工作目录（默认当前目录）")
     parser.add_argument("--plain", action="store_true", help="纯文本输出（无 ANSI 颜色）")
     parser.add_argument("--html", default="", help="输出 HTML 看板路径（如 out.html）")
+    parser.add_argument("--watch", action="store_true",
+                        help="实时刷新模式（终端窗口，Ctrl+C 退出）")
+    parser.add_argument("--interval", type=float, default=3.0,
+                        help="刷新间隔秒数（默认 3）")
     args = parser.parse_args()
 
     cwd = os.path.abspath(args.dir)
@@ -277,9 +281,42 @@ def main():
         print(f"HTML 看板已生成: {path}")
         return 0
 
+    if args.watch:
+        return watch_loop(cwd, args.interval, args.plain)
+
     c = Colors(enabled=not args.plain)
     print(render_terminal(d, c))
     return 0
+
+
+def watch_loop(cwd, interval, plain):
+    """实时刷新终端窗口：ANSI 清屏重绘，Ctrl+C 退出。
+
+    在 Windows Terminal / VSCode 终端 / 现代终端下可实时看到
+    任务阶段、检查点、git 状态随运行变化。
+    """
+    import time
+
+    clear = "\x1b[2J\x1b[H"  # 清屏 + 光标回原点
+    c = Colors(enabled=not plain)
+    try:
+        while True:
+            d = collect(cwd)
+            frame = render_terminal(d, c)
+            if plain:
+                # 纯文本模式：不清屏，连续输出（可用 /less 查看）
+                print("=" * 10, datetime.now().strftime("%H:%M:%S"), "=" * 10, flush=True)
+                print(frame, flush=True)
+            else:
+                print(clear + frame, end="", flush=True)
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print()
+        print("[vibekit] 已退出实时刷新（Ctrl+C）")
+        return 0
+    except Exception as e:
+        print(f"[vibekit] watch 异常退出: {e}")
+        return 1
 
 
 if __name__ == "__main__":
