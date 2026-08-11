@@ -11,13 +11,27 @@ Vibe Coding 的核心矛盾：**AI 写代码快，但"快"不等于"对"**。
 | **小任务** | 单文件 / 配置 / 文案 / 依赖升级 | ①构思→④执行→⑤验证→⑦集成 |
 | **修复任务** | Bug 修复 | 复现→③隔离→④执行→⑤验证→⑥审查→⑦集成 |
 
-## 强制 git 检查点（对抗"两步退回"）
+## 强制 git 检查点（对抗"两步退回"，工具强制）
 
 | 检查点 | 时机 | 动作 |
 |:---:|------|------|
-| A | ③ 隔离 | `git status --porcelain` 确认工作区干净/记录已有改动 |
-| B | ④ 执行后 | `git diff --stat` 核对改动文件 == 边界声明（多改即异常） |
-| C | ⑤ 验证前 | 确认有回滚点（commit / stash / 备份） |
+| A | ③ 隔离 | `python skill/vibekit/scripts/checkpoint.py a`：确认工作区干净/记录已有改动 |
+| B | ④ 执行后 | `python skill/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`：自动核对改动 vs 边界声明，多改/漏改 FAIL（退出码非 0） |
+| C | ⑤ 验证前 | `python skill/vibekit/scripts/checkpoint.py c`：确认存在回滚点（HEAD/stash），无则 FAIL |
+
+> 检查点工具把"让模型自觉跑 git 命令"升级为"不做就过不去"——
+> 这是对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）的工程化防线。
+> 首次使用先 `checkpoint.py boundary-init` 生成边界声明模板。
+
+## 工具链（scripts/）
+
+| 工具 | 用途 |
+|------|------|
+| `checkpoint.py` | 强制 git 检查点 A/B/C + 边界声明模板（a / b / c / boundary-init / status） |
+| `prepare_review.py` | 生成审查输入包（信息隔离：只含 diff+验收标准+审查指令） |
+| `adr.py` | ADR 决策记录落盘（new / list / status） |
+| `vibe_state.py` | 任务状态追踪（start / phase / next / status / done） |
+| `sync_skill.py` | 同步 skill 到安装副本（--check 对比 / --yes 覆盖） |
 
 ## 状态追踪（.vibe/state.json）
 
@@ -103,20 +117,23 @@ python skill/vibekit/scripts/vibe_state.py done             # 完成
 - 有输出才算验证：命令 + 结果 + 结论
 - 失败 → 回到 ④，修完再验证
 
-### ⑥ 审查 Review
+### ⑥ 审查 Review（独立审查，非自审）
 
-输入：验证通过的代码。输出：审查清单 + 修复。
+输入：验证通过的代码。输出：**审查报告（.vibe/review/review.md）**。
 
-- 对照①的验收标准逐条过
-- 质量检查：命名、重复、复杂度、安全隐患
-- 主动问："这个实现会在什么场景挂掉？"
-- 小问题直接修；大问题回到 ② 重新计划
+- **信息隔离**：`python skill/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
+  生成输入包（diff + 验收标准 + 审查指令），审查者只读这个包，不看编写者的自我解释
+- **模型分离**：编写 flash → 审查 `/model deepseek-v4-pro`（自写自审 = 同源幻觉/确认偏误）
+- 按 `references/review.md` 对抗性审查协议：默认假设有 bug、逐条证伪、每条发现带证据、主动找挂点
+- 对照①的验收标准逐条过；S/A 级问题回 ④ 修复后重新生成审查包再审；小问题直接修
 
 ### ⑦ 集成 Integrate
 
 输入：审查通过的代码。输出：交付。
 
 - 更新文档（README/注释/变更记录）
+- **ADR 决策记录**：`python skill/vibekit/scripts/adr.py new "标题"` 生成
+  docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/理由/影响——对抗隐性上下文问题
 - git commit 或输出变更摘要
 - 总结：交付了什么、遗留什么、下次注意什么
 

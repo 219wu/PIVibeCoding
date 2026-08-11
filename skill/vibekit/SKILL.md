@@ -53,11 +53,14 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 
 ### ③ 隔离 Isolate（含强制 git 检查点）
 
-- **检查点 A（执行前）**：运行 `git status --porcelain`，
-  确认工作区干净（或明确记录已有改动，不混入本次改动）
-- 声明改动边界：新增/修改/不动的文件清单
+- **检查点 A（执行前）**：运行
+  `python skill/vibekit/scripts/checkpoint.py a`，
+  确认工作区干净，或把已有改动记录进 `.vibe/checkpoint.json`（B 阶段自动区分，不混入本次改动）
+- 声明改动边界：运行
+  `python skill/vibekit/scripts/checkpoint.py boundary-init`
+  生成 `.vibe/boundary.json`，填写新增/修改/不动三张清单
 - 最小化改动原则：禁止顺手重构无关代码
-- 产出：**改动边界声明 + git 状态确认**
+- 产出：**改动边界声明（.vibe/boundary.json）+ 检查点 A 结果**
 
 ### ④ 执行 Execute
 
@@ -65,31 +68,41 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 - 遵循项目既有风格（命名/注释/结构）
 - 框架调用检查点：确认 API 参数传递链完整（验证阶段会用真实调用/mock 拦截证明）
 - 产出：**代码改动**
-- **检查点 B（执行后）**：运行 `git diff --stat`，核对改动文件
-  与③的边界声明一致——**多改了就是异常**，撤销无关改动
+- **检查点 B（执行后）**：运行
+  `python skill/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`，
+  工具自动核对实际改动 vs 边界声明——多改/漏改/动了不该动的会 **FAIL（退出码非 0）**，
+  撤销无关改动后重跑
 
 ### ⑤ 验证 Verify
 
 - 必做其一：运行测试 / 执行程序 / 语法检查 / mock 拦截请求 payload
 - 检查项：功能正确、边界情况、错误处理
-- **检查点 C（验证前）**：确认有回滚点（干净的 commit 或 git stash 或备份）
+- **检查点 C（验证前）**：运行
+  `python skill/vibekit/scripts/checkpoint.py c`，
+  工具确认存在回滚点（HEAD 提交或 stash），无回滚点则 FAIL
 - 发现问题 → 回到 ④ 修复，再验证（循环）
 - 产出：**验证结果**（命令 + 输出 + 结论）
 
-### ⑥ 审查 Review
+### ⑥ 审查 Review（独立审查，非自审）
 
-- 对照①的验收标准逐条检查
-- 代码质量：命名、重复、复杂度、安全
-- 主动找"这个实现会在什么情况下挂掉"
-- 小问题直接修；大问题回到 ② 重新计划
-- 产出：**审查清单结果 + 修复说明**
+- **信息隔离**：运行 `python skill/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
+  生成 `.vibe/review/prompt.md`（diff + 验收标准 + 审查指令）——
+  审查者只读这个包，**不看编写者的自我解释**（规避同源幻觉/确认偏误）
+- **模型分离**：编写用 flash，审查切换 `/model deepseek-v4-pro`（同厂不同档位；进阶可跨厂商）
+- 按 `references/review.md` 对抗性审查协议执行：默认假设有 bug 逐条证伪、
+  每条发现带证据（文件:行）、主动找挂点
+- 对照①的验收标准逐条检查；小问题直接修；S/A 级问题回 ④ 修复后重新生成审查包再审
+- 产出：**.vibe/review/review.md（审查报告）**
 
 ### ⑦ 集成 Integrate
 
-- 更新文档（README、注释、变更记录、决策记录落盘到 docs/decisions/）
+- 更新文档（README、注释、变更记录）
+- **决策记录落盘（ADR）**：有决策就运行 `python skill/vibekit/scripts/adr.py new "标题"`
+  生成 docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/决策理由/影响——
+  对抗"AI 不懂为什么选 A 不选 B"的隐性上下文问题
 - 按项目规范提交（git commit，清晰的变更摘要）
 - 更新状态文件为完成
-- 产出：**变更记录 + 交付总结**
+- 产出：**变更记录 + ADR（如有决策）+ 交付总结**
 
 ## 四、状态追踪（.vibe/state.json）
 
@@ -124,10 +137,15 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 3. 需求模糊、方向变更 → 回到 ① 构思，不允许带病前进
 4. 任何阶段发现问题 → 反馈到对应阶段重新执行，形成闭环
 5. **验证必须有真实运行证据**：测试通过输出、命令运行结果，不能只说"应该没问题"
-6. **git 检查点 A/B/C 是强制的**：尤其执行后 diff 核对——这是对抗
-   "AI 加功能 D 弄坏 A/B/C"（两步退回）的关键防线
-7. **模型约束**：全程使用 DeepSeek 模型（settings.json 的 defaultModel），不切换其他厂商模型
-8. **思考级别建议**：构思/审查用 high，执行可用 low（提速省钱），由模型自行把握
+6. **git 检查点 A/B/C 是强制的，且必须用工具执行**：
+   `checkpoint.py a / b / c`（见③④⑤）——不做就过不去（退出码非 0 即阻断）。
+   这是对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）的关键防线
+7. **模型分离**：编写用 `deepseek-v4-flash`（默认），审查/验证阶段切换
+   `/model deepseek-v4-pro`——自写自审是同源幻觉/确认偏误的来源
+8. **信息隔离**：审查者只读 prepare_review.py 生成的输入包，
+   不接触编写者的自我解释；验证结论由验证阶段独立得出
+9. **思考级别建议**：构思/审查用 high，执行可用 low（提速省钱），由模型自行把握
+10. **ADR 强制**：⑦集成有决策必须落盘 docs/decisions/（adr.py），不许只口头说
 
 ## 六、错误用法示例（本项目参考教训）
 
