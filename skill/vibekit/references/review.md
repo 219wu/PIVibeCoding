@@ -115,7 +115,7 @@
 
 ```bash
 # 1. 编写者（flash 模型）完成执行阶段后，生成审查输入包：
-python skill/vibekit/scripts/prepare_review.py \
+python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py \
   --acceptance "验收标准文本（来自①构思）"
 
 # 2. 切换审查模型（会话级）：

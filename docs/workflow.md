@@ -15,9 +15,12 @@ Vibe Coding 的核心矛盾：**AI 写代码快，但"快"不等于"对"**。
 
 | 检查点 | 时机 | 动作 |
 |:---:|------|------|
-| A | ③ 隔离 | `python skill/vibekit/scripts/checkpoint.py a`：确认工作区干净/记录已有改动 |
-| B | ④ 执行后 | `python skill/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`：自动核对改动 vs 边界声明，多改/漏改 FAIL（退出码非 0） |
-| C | ⑤ 验证前 | `python skill/vibekit/scripts/checkpoint.py c`：确认存在回滚点（HEAD/stash），无则 FAIL |
+| A | ③ 隔离 | `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py a`：确认工作区干净/记录已有改动 |
+| B | ④ 执行后 | `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`：自动核对改动 vs 边界声明，多改/漏改 FAIL（退出码非 0） |
+| C | ⑤ 验证前 | `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py c`：确认存在回滚点（HEAD/stash），无则 FAIL |
+
+> 脚本已全局安装（`~/.pi/agent/skills/vibekit/scripts/`），**任何项目目录**都能调用。
+> Windows cmd 下用 `%USERPROFILE%\.pi\agent\skills\vibekit\scripts\xxx.py`。
 
 > 检查点工具把"让模型自觉跑 git 命令"升级为"不做就过不去"——
 > 这是对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）的工程化防线。
@@ -36,10 +39,10 @@ Vibe Coding 的核心矛盾：**AI 写代码快，但"快"不等于"对"**。
 ## 状态追踪（.vibe/state.json）
 
 ```bash
-python skill/vibekit/scripts/vibe_state.py start "任务" large
-python skill/vibekit/scripts/vibe_state.py phase conceive   # 推进阶段
-python skill/vibekit/scripts/vibe_state.py status           # 查看状态
-python skill/vibekit/scripts/vibe_state.py done             # 完成
+python ~/.pi/agent/skills/vibekit/scripts/vibe_state.py start "任务" large
+python ~/.pi/agent/skills/vibekit/scripts/vibe_state.py phase conceive   # 推进阶段
+python ~/.pi/agent/skills/vibekit/scripts/vibe_state.py status           # 查看状态
+python ~/.pi/agent/skills/vibekit/scripts/vibe_state.py done             # 完成
 ```
 
 支持多会话：`/skill:vibekit 继续上次任务` 从断点恢复。
@@ -121,7 +124,7 @@ python skill/vibekit/scripts/vibe_state.py done             # 完成
 
 输入：验证通过的代码。输出：**审查报告（.vibe/review/review.md）**。
 
-- **信息隔离**：`python skill/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
+- **信息隔离**：`python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
   生成输入包（diff + 验收标准 + 审查指令），审查者只读这个包，不看编写者的自我解释
 - **模型分离**：编写 flash → 审查 `/model deepseek-v4-pro`（自写自审 = 同源幻觉/确认偏误）
 - 按 `references/review.md` 对抗性审查协议：默认假设有 bug、逐条证伪、每条发现带证据、主动找挂点
@@ -132,7 +135,7 @@ python skill/vibekit/scripts/vibe_state.py done             # 完成
 输入：审查通过的代码。输出：交付。
 
 - 更新文档（README/注释/变更记录）
-- **ADR 决策记录**：`python skill/vibekit/scripts/adr.py new "标题"` 生成
+- **ADR 决策记录**：`python ~/.pi/agent/skills/vibekit/scripts/adr.py new "标题"` 生成
   docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/理由/影响——对抗隐性上下文问题
 - git commit 或输出变更摘要
 - 总结：交付了什么、遗留什么、下次注意什么

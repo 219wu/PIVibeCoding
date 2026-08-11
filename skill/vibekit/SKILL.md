@@ -8,6 +8,17 @@ description: Vibe Coding 七阶段流水线（构思→计划→隔离→执行�
 Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI 的高速产出变成可靠交付**。
 本技能把每个开发任务拆成七阶段，按任务类型分级执行，每阶段有检查点和产出物。
 
+## 全局安装与跨项目使用
+
+- 本技能已**全局安装**：`~/.pi/agent/skills/vibekit/`（项目内副本用 `sync_skill.py` 同步）
+- **任何工作目录**启动 pi 都能用 `/skill:vibekit`；下文命令中的
+  `~/.pi/agent/skills/vibekit/scripts/xxx.py` 即全局脚本路径
+  （Windows cmd 下用 `%USERPROFILE%\.pi\agent\skills\vibekit\scripts\xxx.py`）
+- **项目隔离原则（重要）**：每个项目 = 一个目录 + 一个 git 仓库。
+  项目的 `.vibe/`（任务状态）、`.pi/`（配置）、git 工作区天然按目录隔离；
+  **切换项目 = 切换目录**，无需清理上下文。禁止两个项目共用同一目录混做
+  （那会导致 `.vibe/state.json` 互相覆盖、git 改动混杂）。
+
 ## 一、任务分级（先分级，再选流程）
 
 接到任务后**第一步是判定任务类型**，不同类型走不同流程，避免一刀切：
@@ -54,10 +65,10 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 ### ③ 隔离 Isolate（含强制 git 检查点）
 
 - **检查点 A（执行前）**：运行
-  `python skill/vibekit/scripts/checkpoint.py a`，
+  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py a`，
   确认工作区干净，或把已有改动记录进 `.vibe/checkpoint.json`（B 阶段自动区分，不混入本次改动）
 - 声明改动边界：运行
-  `python skill/vibekit/scripts/checkpoint.py boundary-init`
+  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py boundary-init`
   生成 `.vibe/boundary.json`，填写新增/修改/不动三张清单
 - 最小化改动原则：禁止顺手重构无关代码
 - 产出：**改动边界声明（.vibe/boundary.json）+ 检查点 A 结果**
@@ -69,7 +80,7 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 - 框架调用检查点：确认 API 参数传递链完整（验证阶段会用真实调用/mock 拦截证明）
 - 产出：**代码改动**
 - **检查点 B（执行后）**：运行
-  `python skill/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`，
+  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`，
   工具自动核对实际改动 vs 边界声明——多改/漏改/动了不该动的会 **FAIL（退出码非 0）**，
   撤销无关改动后重跑
 
@@ -78,14 +89,14 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 - 必做其一：运行测试 / 执行程序 / 语法检查 / mock 拦截请求 payload
 - 检查项：功能正确、边界情况、错误处理
 - **检查点 C（验证前）**：运行
-  `python skill/vibekit/scripts/checkpoint.py c`，
+  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py c`，
   工具确认存在回滚点（HEAD 提交或 stash），无回滚点则 FAIL
 - 发现问题 → 回到 ④ 修复，再验证（循环）
 - 产出：**验证结果**（命令 + 输出 + 结论）
 
 ### ⑥ 审查 Review（独立审查，非自审）
 
-- **信息隔离**：运行 `python skill/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
+- **信息隔离**：运行 `python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
   生成 `.vibe/review/prompt.md`（diff + 验收标准 + 审查指令）——
   审查者只读这个包，**不看编写者的自我解释**（规避同源幻觉/确认偏误）
 - **模型分离**：编写用 flash，审查切换 `/model deepseek-v4-pro`（同厂不同档位；进阶可跨厂商）
@@ -97,7 +108,7 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 ### ⑦ 集成 Integrate
 
 - 更新文档（README、注释、变更记录）
-- **决策记录落盘（ADR）**：有决策就运行 `python skill/vibekit/scripts/adr.py new "标题"`
+- **决策记录落盘（ADR）**：有决策就运行 `python ~/.pi/agent/skills/vibekit/scripts/adr.py new "标题"`
   生成 docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/决策理由/影响——
   对抗"AI 不懂为什么选 A 不选 B"的隐性上下文问题
 - 按项目规范提交（git commit，清晰的变更摘要）

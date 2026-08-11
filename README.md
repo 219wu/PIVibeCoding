@@ -6,13 +6,17 @@
 ## 快速开始
 
 ```bash
-# 1. 进入本项目目录启动 Pi（自动使用项目级 DeepSeek 配置）
+# 1. 进入项目目录启动 Pi（自动使用项目级 DeepSeek 配置）
 cd D:\No.1\practice\PIVibeCoding
 pi
 
 # 2. 触发七阶段流水线（描述你的任务）
 /skill:vibekit 为项目添加一个 Redis 缓存层
 ```
+
+> **vibekit 已全局安装**（`~/.pi/agent/skills/vibekit/`），任何项目目录都能用 `/skill:vibekit` 和它的脚本。
+> **项目隔离原则**：每个项目 = 一个目录 + 一个 git 仓库，任务状态（`.vibe/`）、配置（`.pi/`）、
+> git 工作区天然按目录隔离；切换项目 = 切换目录，无需清理上下文。
 
 ## 目录结构
 

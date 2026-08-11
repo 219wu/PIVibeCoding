@@ -91,7 +91,7 @@ def main():
 
     # 审查指令（内嵌检查清单，保证输入包自包含；完整协议见 review.md）
     protocol_checks = (
-        "## 审查指令（对抗性审查，完整协议见 skill/vibekit/references/review.md）\n"
+        "## 审查指令（对抗性审查，完整协议见 ~/.pi/agent/skills/vibekit/references/review.md）\n"
         "你是独立代码审查员。默认假设代码里有 bug，逐条证伪。\n"
         "1. 验收标准逐条对照：可测？满足？证据？\n"
         "2. 功能正确性：逻辑、边界（空/0/None/超长）、错误处理、退出码\n"
