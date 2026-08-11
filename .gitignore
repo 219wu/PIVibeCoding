@@ -1,4 +1,24 @@
-# vibekit 运行时产物（任务状态、检查点、审查包——按会话生成，不入库）
+# ===== 密钥与凭据（安全红线：任何 API key / 私钥 / 凭据禁止入库）=====
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+*.cred
+credentials
+auth.json
+secrets/
+*.log
+
+# ===== 系统 / IDE 文件 =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ===== vibekit 运行时产物（任务状态、检查点、审查包——按会话生成，不入库）=====
 .vibe/
 __pycache__/
 *.pyc
