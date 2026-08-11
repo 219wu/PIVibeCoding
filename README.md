@@ -87,6 +87,9 @@ PIVibeCoding/
 | `adr.py` | ADR 决策记录落盘 docs/decisions/：把"为什么选 A 不选 B"变成可回溯的资产 |
 | `sync_skill.py` | 项目 skill → 安装副本同步（--check 对比，防版本漂移） |
 | `security.py` | 安全模块：危险命令拦截、敏感路径/内容扫描、git hooks 安装（commit/push 前自动检查） |
+| `dashboard.py` | 可视化仪表盘：终端面板 + HTML 看板（任务阶段/检查点/git/ADR/审查） |
+| `metrics.py` | 度量统计：任务数、检查点通过率、审查问题分布、ADR（--json 可接其他工具） |
+| `summary.py` | 任务摘要生成（配合 /compact 与跨会话恢复） |
 
 详见 [docs/workflow.md](docs/workflow.md)。
 

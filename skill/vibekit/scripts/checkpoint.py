@@ -105,6 +105,15 @@ def git_status_changes(cwd, include_runtime=False):
         changes[path] = code
     return changes
 
+def audit(cwd, action, detail, result):
+    """追加审计日志（.vibe/audit.log），供 metrics/dashboard 统计。"""
+    log_path = os.path.join(cwd, ".vibe", "audit.log")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    ts = datetime.now().isoformat(timespec="seconds")
+    line = ts + " | " + action + " | " + detail + " | " + result + chr(10)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(line)
+
 
 def load_boundary(path):
     if not os.path.exists(path):
@@ -145,6 +154,8 @@ def cmd_a(args):
 
     state["a_checked_at"] = datetime.now().isoformat(timespec="seconds")
     save_json(state_path, state)
+    n = len(changes)
+    audit(cwd, "checkpoint_a", f"preexisting={n}", "PASS" if not changes else "WARN")
     log(f"状态已写入 {CHECKPOINT_FILE}", "INFO")
     return 0
 
@@ -206,6 +217,8 @@ def cmd_b(args):
 
     state["b_checked_at"] = datetime.now().isoformat(timespec="seconds")
     save_json(os.path.join(cwd, CHECKPOINT_FILE), state)
+    result = "PASS" if not errors else f"FAIL({len(errors)})"
+    audit(cwd, "checkpoint_b", f"added={len(boundary.get('added',[]))};modified={len(boundary.get('modified',[]))};new_changes={len(new_changes)}", result)
     return 0 if not errors else 1
 
 
@@ -237,6 +250,7 @@ def cmd_c(args):
         log("没有回滚点：无 HEAD 提交且无 stash。请先 git commit 当前进度或创建 stash", "FAIL")
         state["c_result"] = "FAIL"
         save_json(state_path, state)
+        audit(cwd, "checkpoint_c", "no rollback point", "FAIL")
         return 1
 
     for r in rollbacks:
@@ -251,6 +265,7 @@ def cmd_c(args):
     state["c_result"] = "PASS"
     state["c_checked_at"] = datetime.now().isoformat(timespec="seconds")
     save_json(state_path, state)
+    audit(cwd, "checkpoint_c", f"rollback={out[:12] if rc_head==0 else 'stash'}", "PASS")
     return 0
 
 

@@ -42,6 +42,27 @@ def save_state(path: str, state: dict) -> None:
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
+def audit(dir_: str, action: str, detail: str, result: str = "ok") -> None:
+    """追加审计日志（.vibe/audit.log），供 metrics/dashboard 统计。
+
+    格式（管道分隔，易解析）：
+      TS | action | detail | result
+    """
+    log_path = os.path.join(dir_, ".vibe", "audit.log")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    ts = datetime.now().isoformat(timespec="seconds")
+    line = f"{ts} | {action} | {detail} | {result}\n"
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(line)
+
+
+def audit_state(dir_: str, action: str, state: dict) -> None:
+    """带当前任务上下文的审计（detail 含任务名）。"""
+    task = state.get("task", "?")
+    detail = f"task={task};phase={state.get('current_phase', '?')}"
+    audit(dir_, action, detail)
+
+
 def cmd_start(args) -> int:
     path = os.path.join(args.dir, ".vibe", "state.json")
     state = {
@@ -52,6 +73,7 @@ def cmd_start(args) -> int:
         "phases": {p: "todo" for p in PHASES},
     }
     save_state(path, state)
+    audit(args.dir, "task_start", f"task={args.task};type={args.task_type}")
     print(f"[vibekit] 任务已开始: {args.task} ({args.task_type})")
     print(f"[vibekit] 当前阶段: {PHASE_CN[state['current_phase']]}"
           f" → 下一步: {state['next_step']}")
@@ -84,6 +106,7 @@ def cmd_phase(args) -> int:
         print(f"[vibekit] 阶段完成: {PHASE_CN[phase]} → 任务全部阶段完成，"
               "记得执行 done 归档")
     save_state(path, state)
+    audit(args.dir, "phase_done", f"task={state.get('task','?')};phase={phase}")
     return 0
 
 
@@ -95,6 +118,7 @@ def cmd_next(args) -> int:
         return 1
     state["next_step"] = args.desc
     save_state(path, state)
+    audit(args.dir, "next_step", f"task={state.get('task','?')};desc={args.desc[:50]}")
     print(f"[vibekit] 下一步已记录: {args.desc}")
     return 0
 
@@ -127,6 +151,7 @@ def cmd_done(args) -> int:
     state["current_phase"] = "done"
     state["next_step"] = "任务已完成"
     save_state(path, state)
+    audit(args.dir, "task_done", f"task={state.get('task','?')}")
     print(f"[vibekit] 任务已标记完成: {state.get('task')}")
     return 0
 

@@ -124,7 +124,8 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 
 ## 四、状态追踪（.vibe/state.json）
 
-每个任务在工作目录维护 `.vibe/state.json`，支持中断恢复与多会话推进：
+每个任务在工作目录维护 `.vibe/state.json`，支持中断恢复与多会话推进；
+配套 `.vibe/audit.log`（审计）、`.vibe/summary.md`（摘要，配合 `/compact`）：
 
 ```json
 {
@@ -144,8 +145,10 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 规则：
 - 每个阶段开始/完成时更新 `current_phase`、`phases`、`next_step`、`updated_at`
 - 任务完成 → `current_phase: "done"`
-- 用户说"继续上次任务" → 先读 `.vibe/state.json`，从 `current_phase` 恢复
+- 用户说"继续上次任务" → 先读 `.vibe/state.json`（必要时 `summary.py` 生成摘要），从 `current_phase` 恢复
 - 多任务并行 → 每个任务一个目录（`.vibe/tasks/<任务名>/state.json`）
+- **可视化/度量**：`dashboard.py` 看运行状态，`metrics.py` 看统计数据
+- **多角色落地**：审查者用独立会话 + 切换 pro 模型（详见 `references/agents.md`）
 
 ## 五、工作规则
 

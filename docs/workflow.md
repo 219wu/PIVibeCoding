@@ -36,6 +36,10 @@ Vibe Coding 的核心矛盾：**AI 写代码快，但"快"不等于"对"**。
 | `vibe_state.py` | 任务状态追踪（start / phase / next / status / done） |
 | `sync_skill.py` | 同步 skill 到安装副本（--check 对比 / --yes 覆盖） |
 | `security.py` | 安全模块：check-command 危险命令拦截 / check-path 敏感路径 / scan 敏感内容 / install-hooks 安装 git hooks |
+| `dashboard.py` | 可视化仪表盘：终端面板 + `--html` 看板（任务阶段/检查点/git/ADR/审查） |
+| `metrics.py` | 度量统计：任务/检查点通过率/审查问题分布/ADR（`--json` 输出） |
+| `summary.py` | 任务摘要生成 `.vibe/summary.md`（配合 pi `/compact` 与跨会话恢复） |
+| `audit` | 审计日志 `.vibe/audit.log`（vibe_state/checkpoint 自动写入，metrics 消费） |
 
 ## 状态追踪（.vibe/state.json）
 
