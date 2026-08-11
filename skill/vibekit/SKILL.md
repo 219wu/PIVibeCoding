@@ -8,16 +8,17 @@ description: Vibe Coding 七阶段流水线（构思→计划→隔离→执行�
 Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI 的高速产出变成可靠交付**。
 本技能把每个开发任务拆成七阶段，按任务类型分级执行，每阶段有检查点和产出物。
 
+> **token 优化（渐进式披露）**：本文件是流程骨架，常驻上下文。
+> - 进入某个阶段前 → `read ~/.pi/agent/skills/vibekit/references/stages.md`（读对应小节）
+> - 规则冲突/状态恢复/完整规则 → `read .../references/rules.md`
+> - 审查协议 → `read .../references/review.md`；多角色 → `read .../references/agents.md`
+
 ## 全局安装与跨项目使用
 
-- 本技能已**全局安装**：`~/.pi/agent/skills/vibekit/`（项目内副本用 `sync_skill.py` 同步）
-- **任何工作目录**启动 pi 都能用 `/skill:vibekit`；下文命令中的
-  `~/.pi/agent/skills/vibekit/scripts/xxx.py` 即全局脚本路径
-  （Windows cmd 下用 `%USERPROFILE%\.pi\agent\skills\vibekit\scripts\xxx.py`）
-- **项目隔离原则（重要）**：每个项目 = 一个目录 + 一个 git 仓库。
-  项目的 `.vibe/`（任务状态）、`.pi/`（配置）、git 工作区天然按目录隔离；
-  **切换项目 = 切换目录**，无需清理上下文。禁止两个项目共用同一目录混做
-  （那会导致 `.vibe/state.json` 互相覆盖、git 改动混杂）。
+- 技能全局安装于 `~/.pi/agent/skills/vibekit/`，**任何目录**启动 pi 都能用 `/skill:vibekit`
+- 命令统一前缀：`python ~/.pi/agent/skills/vibekit/scripts/<工具>`（Windows cmd 用 `%USERPROFILE%`）
+- **项目隔离**：每个项目 = 一个目录 + 一个 git 仓库；`.vibe/`、`.pi/`、git 天然按目录隔离。
+  **切换项目 = 切换目录**，无需清理上下文；禁止两项目共用同目录混做。
 
 ## 一、任务分级（先分级，再选流程）
 
@@ -29,7 +30,7 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 | **小任务** | 单文件修改 / 配置调整 / 文案 / 依赖升级 | ①构思 → ④执行 → ⑤验证 → ⑦集成 |
 | **修复任务** | Bug 修复 | 复现 → ③隔离 → ④执行 → ⑤验证 → ⑥审查 → ⑦集成 |
 
-分级决策记录在状态文件里（见"四、状态追踪"）。
+分级决策记录在状态文件里（见 references/rules.md 的状态追踪）。
 
 ## 二、七阶段总览（大任务用）
 
@@ -44,151 +45,47 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 | ③ 隔离 Isolate | 最小化改动面，保证可回滚 | 改动边界声明 + git 检查 |
 | ④ 执行 Execute | 实现代码 | 代码改动 |
 | ⑤ 验证 Verify | 证明它真的能用 | 测试运行结果 |
-| ⑥ 审查 Review | 对照需求检查质量 | 审查清单 + 修复 |
-| ⑦ 集成 Integrate | 收尾：文档、提交、总结 | 变更记录 + 提交 |
+| ⑥ 审查 Review | 对照需求检查质量 | 审查报告（独立审查） |
+| ⑦ 集成 Integrate | 收尾：文档、提交、总结 | 变更记录 + ADR + 提交 |
 
-## 三、阶段细则
+> 各阶段详细操作（命令、产出物、检查点细节）见 `references/stages.md`。
 
-### ① 构思 Conceive
+## 三、检查点速查（强制，不做就过不去）
 
-- 复述需求，确认理解正确；澄清目标/输入输出/成功标准
-- 记录**决策理由**：为什么这么设计（备选方案是否考虑过）
-- 产出：**需求理解 + 验收标准清单**（可测的）+ 决策记录
+| 检查点 | 时机 | 命令 |
+|:---:|------|------|
+| A | ③ 执行前 | `checkpoint.py a`（记录已有改动，B 阶段区分） |
+| B | ④ 执行后 | `checkpoint.py b --boundary .vibe/boundary.json`（多改/漏改/动 untouched → FAIL） |
+| C | ⑤ 验证前 | `checkpoint.py c`（确认回滚点，无则 FAIL） |
 
-### ② 计划 Plan
+> 首次使用先 `checkpoint.py boundary-init` 生成边界模板。hooks 已安装时
+> pre-commit 自动跑检查点 B + 敏感扫描，pre-push 自动扫待推送内容。
 
-- 拆解为可执行子任务（每任务一个明确产出）
-- 确定技术方案：文件结构、依赖、接口设计
-- 评估风险点：哪个环节最容易出问题（框架调用、边界情况、兼容性）
-- 产出：**任务清单（编号）+ 文件规划 + 风险点**
+## 四、工具索引（scripts/）
 
-### ③ 隔离 Isolate（含强制 git 检查点）
+| 工具 | 用途 |
+|------|------|
+| `checkpoint.py` | 检查点 A/B/C + 边界声明（a / b / c / boundary-init / status） |
+| `vibe_state.py` | 任务状态机（start / phase / next / status / done，自动写 audit.log） |
+| `security.py` | 危险命令/敏感路径/内容扫描 + install-hooks |
+| `prepare_review.py` | 审查输入包（信息隔离 + 无全量 diff，token 优化） |
+| `adr.py` | ADR 决策记录 docs/decisions/（new / list / status） |
+| `dashboard.py` | 可视化状态面板（终端 + `--html` 看板） |
+| `metrics.py` | 度量统计（--json 可接工具） |
+| `summary.py` | 任务摘要（配合 `/compact` 与跨会话恢复） |
+| `init.py` | 新项目初始化（AGENTS.md + hooks + .gitignore） |
+| `sync_skill.py` | 同步安装副本（--check / --yes） |
 
-- **检查点 A（执行前）**：运行
-  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py a`，
-  确认工作区干净，或把已有改动记录进 `.vibe/checkpoint.json`（B 阶段自动区分，不混入本次改动）
-- 声明改动边界：运行
-  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py boundary-init`
-  生成 `.vibe/boundary.json`，填写新增/修改/不动三张清单
-- 最小化改动原则：禁止顺手重构无关代码
-- 产出：**改动边界声明（.vibe/boundary.json）+ 检查点 A 结果**
+## 五、核心工作规则（完整 11 条见 references/rules.md）
 
-### ④ 执行 Execute
+1. **严格按流程推进，不要跳步**；每阶段完成先汇报产出物再前进
+2. **验证必须有真实运行证据**（命令 + 输出 + 结论），不能说"应该没问题"
+3. **检查点 A/B/C 必须用工具执行**——对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）
+4. **模型分离**：编写 flash，审查切换 `/model deepseek-v4-pro`；审查只读输入包（信息隔离）
+5. **安全红线**：破坏性命令先过 `check-command`；密钥文件禁止读写；hooks 不得绕过
+6. **ADR 强制**：有决策必须落盘 docs/decisions/；思考级别：构思/审查 high、执行 low
 
-- 按计划逐任务实现，每完成一个子任务同步一次进度
-- 遵循项目既有风格（命名/注释/结构）
-- 框架调用检查点：确认 API 参数传递链完整（验证阶段会用真实调用/mock 拦截证明）
-- **安全命令检查**：执行破坏性/危险命令前先跑
-  `python ~/.pi/agent/skills/vibekit/scripts/security.py check-command "<命令>"`——
-  rm -rf 根目录、git push --force、drop table 等会被拦截；
-  触碰密钥文件前先 `security.py check-path <路径>`
-- 产出：**代码改动**
-- **检查点 B（执行后）**：运行
-  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py b --boundary .vibe/boundary.json`，
-  工具自动核对实际改动 vs 边界声明——多改/漏改/动了不该动的会 **FAIL（退出码非 0）**，
-  撤销无关改动后重跑
-
-### ⑤ 验证 Verify
-
-- 必做其一：运行测试 / 执行程序 / 语法检查 / mock 拦截请求 payload
-- 检查项：功能正确、边界情况、错误处理
-- **检查点 C（验证前）**：运行
-  `python ~/.pi/agent/skills/vibekit/scripts/checkpoint.py c`，
-  工具确认存在回滚点（HEAD 提交或 stash），无回滚点则 FAIL
-- 发现问题 → 回到 ④ 修复，再验证（循环）
-- 产出：**验证结果**（命令 + 输出 + 结论）
-
-### ⑥ 审查 Review（独立审查，非自审）
-
-- **信息隔离**：运行 `python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py --acceptance "验收标准"`
-  生成 `.vibe/review/prompt.md`（diff + 验收标准 + 审查指令）——
-  审查者只读这个包，**不看编写者的自我解释**（规避同源幻觉/确认偏误）
-- **模型分离**：编写用 flash，审查切换 `/model deepseek-v4-pro`（同厂不同档位；进阶可跨厂商）
-- 按 `references/review.md` 对抗性审查协议执行：默认假设有 bug 逐条证伪、
-  每条发现带证据（文件:行）、主动找挂点
-- 对照①的验收标准逐条检查；小问题直接修；S/A 级问题回 ④ 修复后重新生成审查包再审
-- 产出：**.vibe/review/review.md（审查报告）**
-
-### ⑦ 集成 Integrate
-
-- 更新文档（README、注释、变更记录）
-- **决策记录落盘（ADR）**：有决策就运行 `python ~/.pi/agent/skills/vibekit/scripts/adr.py new "标题"`
-  生成 docs/decisions/ADR-0001-*.md，填写背景/决策/备选方案/决策理由/影响——
-  对抗"AI 不懂为什么选 A 不选 B"的隐性上下文问题
-- **安装安全 hooks**（新仓库首次）：
-  `python ~/.pi/agent/skills/vibekit/scripts/security.py install-hooks`——
-  pre-commit 自动跑检查点 B + 敏感扫描，pre-push 自动扫描待推送内容（最后防线）
-- 按项目规范提交（git commit，清晰的变更摘要）
-- 更新状态文件为完成
-- 产出：**变更记录 + ADR（如有决策）+ 交付总结**
-
-## 四、状态追踪（.vibe/state.json）
-
-每个任务在工作目录维护 `.vibe/state.json`，支持中断恢复与多会话推进；
-配套 `.vibe/audit.log`（审计）、`.vibe/summary.md`（摘要，配合 `/compact`）：
-
-```json
-{
-  "task": "任务描述",
-  "task_type": "large | small | fix",
-  "current_phase": "当前阶段名",
-  "next_step": "下一步要做什么",
-  "phases": {
-    "conceive": "done",
-    "plan": "done",
-    "isolate": "in_progress"
-  },
-  "updated_at": "2026-08-08T00:00:00"
-}
-```
-
-规则：
-- 每个阶段开始/完成时更新 `current_phase`、`phases`、`next_step`、`updated_at`
-- 任务完成 → `current_phase: "done"`
-- 用户说"继续上次任务" → 先读 `.vibe/state.json`（必要时 `summary.py` 生成摘要），从 `current_phase` 恢复
-- 多任务并行 → 每个任务一个目录（`.vibe/tasks/<任务名>/state.json`）
-- **可视化/度量**：`dashboard.py` 看运行状态，`metrics.py` 看统计数据
-- **多角色落地**：审查者用独立会话 + 切换 pro 模型（详见 `references/agents.md`）
-
-## 五、工作规则
-
-1. **严格按流程推进，不要跳步**（分级后的流程为准）
-2. 每阶段完成先汇报产出物，再进入下一阶段；汇报格式：
-   `【阶段N/七·名称】...产出物...`
-3. 需求模糊、方向变更 → 回到 ① 构思，不允许带病前进
-4. 任何阶段发现问题 → 反馈到对应阶段重新执行，形成闭环
-5. **验证必须有真实运行证据**：测试通过输出、命令运行结果，不能只说"应该没问题"
-6. **git 检查点 A/B/C 是强制的，且必须用工具执行**：
-   `checkpoint.py a / b / c`（见③④⑤）——不做就过不去（退出码非 0 即阻断）。
-   这是对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）的关键防线
-7. **模型分离**：编写用 `deepseek-v4-flash`（默认），审查/验证阶段切换
-   `/model deepseek-v4-pro`——自写自审是同源幻觉/确认偏误的来源
-8. **信息隔离**：审查者只读 prepare_review.py 生成的输入包，
-   不接触编写者的自我解释；验证结论由验证阶段独立得出
-9. **思考级别建议**：构思/审查用 high，执行可用 low（提速省钱），由模型自行把握
-10. **ADR 强制**：⑦集成有决策必须落盘 docs/decisions/（adr.py），不许只口头说
-11. **安全命令红线**：破坏性命令（强制推送/删库/递归删除/管道执行远程脚本）
-    执行前必须过 `security.py check-command`；密钥文件（auth.json/.env/私钥）
-    禁止读写——`check-path` 会拦截；git hooks（pre-commit/pre-push）已安装时
-    自动执行检查点 B 和敏感扫描，不得绕过
-
-## 六、错误用法示例（本项目参考教训）
-
-参考 `D:\No.1\practice\AIMianshi\docs\model-selection.md` 中记录的 LangChain 参数丢失问题：
-
-```
-❌ 错误：llm.bind(extra_body=...).with_structured_output(...)
-   —— bind 的参数在 with_structured_output 重建请求时丢失（参数隔离）
-
-✅ 正确：llm.with_structured_output(..., extra_body=...)
-   —— 模型参数显式传给 with_structured_output（0.3.21+ 支持透传）
-```
-
-**教训**：框架调用的"正确用法"是执行阶段的检查项——遇到框架 API，
-先确认参数传递链是否完整；验证阶段必须用真实调用/mock 拦截 payload
-证明参数真的传到了请求里，不能只凭"代码看起来对"。
-
-## 七、使用方式
+## 六、使用方式
 
 ```bash
 /skill:vibekit <任务描述>          # 新任务：自动分级 → 走对应流程
