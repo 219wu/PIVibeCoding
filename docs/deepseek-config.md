@@ -12,7 +12,7 @@
 }
 ```
 
-## API Key（~/.pi/agent/auth.json）
+## API Key（全局 ~/.pi/agent/auth.json，非项目 .pi/）
 
 ```json
 {
@@ -25,6 +25,19 @@
 pi auth   # 交互式配置，选择 deepseek provider 粘贴 key
 ```
 或直接编辑 `~/.pi/agent/auth.json`。
+
+> ⚠️ **`~` 指用户主目录**（Windows 上如 `C:\Users\<你的用户名>`），
+> 即 `C:\Users\<你的用户名>\.pi\agent\auth.json`——**不是**项目目录下的 `.pi\`。
+>
+> 两处 `.pi` 的区别：
+>
+> | 位置 | 路径 | 内容 |
+> |------|------|------|
+> | 全局 | `~/.pi/agent/auth.json` | **API Key**（所有项目共用，仅在全局一处存放） |
+> | 项目内 | `<项目>/.pi/settings.json` | 模型锁定配置（无密钥，可安全提交到 git） |
+>
+> **安全原则**：密钥只存在全局一处，项目内 `.pi/` 不应存放密钥——
+> 这样无论项目怎么 git 推送，密钥都不会进仓库。
 
 ## 模型目录（~/.pi/agent/models-store.json）
 

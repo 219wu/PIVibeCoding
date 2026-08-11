@@ -51,7 +51,7 @@ PIVibeCoding/
 | Provider | `deepseek`（api.deepseek.com，OpenAI 兼容） |
 | 主模型 | `deepseek-v4-flash`（默认，性价比高） |
 | 备选 | `deepseek-v4-pro`（复杂任务可切换） |
-| API Key | `~/.pi/agent/auth.json` 中 `deepseek` 条目（无需重复配置） |
+| API Key | 全局 `~/.pi/agent/auth.json`（**用户主目录**，非项目目录）中 `deepseek` 条目；项目内 `.pi/` 仅含模型配置，**不含也不应存放密钥** |
 | 思考级别 | `defaultThinkingLevel: high`（可调 minimal/low/medium/high/max） |
 
 > 全工作流只使用 DeepSeek 模型，**编写用 flash、审查/验证切换 pro**（模型分离，规避自写自审的同源幻觉）。
