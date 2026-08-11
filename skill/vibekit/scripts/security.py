@@ -41,7 +41,7 @@ DANGER_COMMANDS = [
      "CONFIRM", "丢弃所有未提交改动", "先确认改动已 commit 或 stash"),
     (re.compile(r"git\s+clean\s+-(f|d|fd|df|fx|xf)\b", re.I),
      "CONFIRM", "删除未跟踪文件", "先确认这些文件不需要"),
-    (re.compile(r"rm\s+(-[rfd]+)?\s+/\s|rm\s+-rf\s+~|rm\s+-rf\s+[a-z]:\\?$", re.I),
+    (re.compile(r"rm\s+(-[rfd]+)?\s+/(\s|$)|rm\s+-rf\s+~|rm\s+-rf\s+[a-z]:\\?$", re.I),
      "BLOCK", "删除根目录/家目录/盘符根", "绝对禁止：这是不可逆操作"),
     (re.compile(r"\bdel\s+/[sq]|rd\s+/s\b|format\s+[a-z]:", re.I),
      "BLOCK", "Windows 递归删除/格式化", "绝对禁止"),
@@ -72,7 +72,7 @@ SENSITIVE_PATTERNS = [
     ("Bearer token", re.compile(r"(?i)bearer\s+[A-Za-z0-9._-]{20,}")),
     ("AWS 访问密钥", re.compile(r"AKIA[0-9A-Z]{16}")),
     ("私钥块", re.compile(r"-----BEGIN (RSA |EC |OPENSSH |PGP |DSA )?PRIVATE KEY-----")),
-    ("长口令/令牌赋值", re.compile(r"(?i)(password|passwd|secret|token)\s*[=:]\s*[\"']?[^\s\"']{12,}")),
+    ("长口令/令牌赋值", re.compile(r"(?i)\b(password|passwd|secret|token)\s*[=:]\s*[\"']?[A-Za-z0-9_+/=.-]{16,}")),
 ]
 
 WHITELIST_PREFIXES = ("sk-test",)  # 测试假密钥
