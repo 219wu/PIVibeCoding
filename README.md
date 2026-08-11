@@ -3,6 +3,19 @@
 基于 Pi 框架（pi-coding-agent）搭建的 Vibe Coding 开发工作流，
 核心是 `/skill:vibekit` 七阶段流水线：**构思 → 计划 → 隔离 → 执行 → 验证 → 审查 → 集成**。
 
+## 命令行入口（Windows：任何窗口直接敲）
+
+```bash
+vibekit watch                 # 实时观察窗（任务状态随运行刷新，Ctrl+C 退出）
+vibekit metrics               # 度量统计
+vibekit checkpoint status     # 检查点状态
+vibekit dashboard --html x.html
+```
+
+> 入口脚本在 `~/.pi/agent/bin/vibekit.cmd`（该目录已在 PATH）。
+> 部署到新机器：复制 `skill/vibekit/templates/vibekit.cmd` 到 `~/.pi/agent/bin/`。
+> 不用入口时，cmd 里用 `%USERPROFILE%\.pi\...`（`~` 在 cmd 不展开）。
+
 ## 快速开始
 
 ```bash
