@@ -7,6 +7,7 @@
 
 ```bash
 vibekit watch                 # 实时观察窗（任务状态随运行刷新，Ctrl+C 退出）
+vibekit open-watch            # 自动开新窗口观察窗，标题=当前任务名（简写 ow）
 vibekit metrics               # 度量统计
 vibekit checkpoint status     # 检查点状态
 vibekit dashboard --html x.html

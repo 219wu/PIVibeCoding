@@ -18,6 +18,8 @@ rem no arg or watch/w -> realtime window
 if "%~1"=="" goto :watch
 if "%~1"=="watch" goto :watch
 if "%~1"=="w" goto :watch
+if "%~1"=="open-watch" goto :openwatch
+if "%~1"=="ow" goto :openwatch
 
 rem other: vibekit <script> <args...>
 if exist "%VIBEKIT_SCRIPTS%\%~1.py" (
@@ -31,4 +33,9 @@ goto :eof
 
 :watch
 python "%VIBEKIT_SCRIPTS%\dashboard.py" --watch %2 %3 %4 %5
+goto :eof
+
+:openwatch
+python "%VIBEKIT_SCRIPTS%\open_watch.py" %2 %3 %4 %5 %6 %7
+goto :eof
 endlocal
