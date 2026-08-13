@@ -20,6 +20,7 @@ if "%~1"=="watch" goto :watch
 if "%~1"=="w" goto :watch
 if "%~1"=="open-watch" goto :openwatch
 if "%~1"=="ow" goto :openwatch
+if "%~1"=="task" goto :taskcmd
 
 rem other: vibekit <script> <args...>
 if exist "%VIBEKIT_SCRIPTS%\%~1.py" (
@@ -37,5 +38,9 @@ goto :eof
 
 :openwatch
 python "%VIBEKIT_SCRIPTS%\open_watch.py" %2 %3 %4 %5 %6 %7
+goto :eof
+
+:taskcmd
+python "%VIBEKIT_SCRIPTS%	ask.py" %2 %3 %4 %5 %6 %7
 goto :eof
 endlocal
