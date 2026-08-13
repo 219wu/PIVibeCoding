@@ -81,7 +81,9 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
 1. **严格按流程推进，不要跳步**；每阶段完成先汇报产出物再前进
 2. **验证必须有真实运行证据**（命令 + 输出 + 结论），不能说"应该没问题"
 3. **检查点 A/B/C 必须用工具执行**——对抗"AI 加功能 D 弄坏 A/B/C"（两步退回）
-4. **模型分离**：编写 flash，审查切换 `/model deepseek-v4-pro`；审查只读输入包（信息隔离）
+4. **模型分离**：编写 flash；审查阶段**调用 `set_review_model` 工具**切换
+   deepseek-v4-pro（extension 提供；不可用时用户 `/model deepseek-v4-pro`），审查完
+   调 `set_writer_model` 切回；审查只读输入包（信息隔离）
 5. **安全红线**：破坏性命令先过 `check-command`；密钥文件禁止读写；hooks 不得绕过
 6. **ADR 强制**：有决策必须落盘 docs/decisions/；思考级别：构思/审查 high、执行 low
 

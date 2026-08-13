@@ -16,7 +16,7 @@
 | 角色 | 职责 | 模型 | 会话 |
 |------|------|------|------|
 | **编写者 Writer** | 构思→执行→验证 | deepseek-v4-flash（默认） | 主会话 |
-| **审查者 Reviewer** | 对抗性审查（只吃输入包） | deepseek-v4-pro（或跨厂商） | **独立会话** |
+| **审查者 Reviewer** | 对抗性审查（只吃输入包） | deepseek-v4-pro（set_review_model 切换，或跨厂商） | **独立会话** |
 | **验证者 Verifier** | 独立判定验收标准 | 可与编写者同模型 | 主会话（验证证据独立） |
 
 ## 三、操作流程
@@ -44,7 +44,8 @@ python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py \
 # 或方式 B：克隆当前会话再清空编写过程（保留项目文件引用）
 /clone
 
-/model deepseek-v4-pro        # 切换审查模型（模型分离）
+调用 set_review_model 工具切换审查模型
+#   或手动: /model deepseek-v4-pro        # 切换审查模型（模型分离）
 ```
 
 ### 步骤 4：审查者只读输入包，按协议审查

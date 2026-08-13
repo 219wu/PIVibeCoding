@@ -118,8 +118,8 @@
 python ~/.pi/agent/skills/vibekit/scripts/prepare_review.py \
   --acceptance "验收标准文本（来自①构思）"
 
-# 2. 切换审查模型（会话级）：
-/model deepseek-v4-pro
+# 2. 切换审查模型（会话级，优先用工具）：
+#    调用 set_review_model 工具，或手动 /model deepseek-v4-pro
 
 # 3. 审查者读取输入包，按本协议审查：
 #    （只读 prompt.md 里的 diff + 验收标准 + 检查清单）

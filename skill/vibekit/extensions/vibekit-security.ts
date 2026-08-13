@@ -19,6 +19,7 @@
  * 兼容性：正则全部用 new RegExp 字符串形式（避免 TS 解析器对正则字面量的兼容问题）。
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -80,7 +81,49 @@ function findDanger(command: string): string | null {
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
-    ctx.ui.notify("vibekit 安全权限门已加载（tool_call 拦截 + 工具级审计）", "info");
+    ctx.ui.notify("vibekit 安全权限门已加载（tool_call 拦截 + 工具级审计 + 模型切换）", "info");
+  });
+
+  // ---- 模型分离：审查用 pro，编写用 flash ----
+  // 模型可在审查阶段自主调用（比用户手动 /model 强），切换记录进审计日志
+  const switchModel = async (modelId: string, label: string) => {
+    const ok = await pi.setModel({ provider: "deepseek", id: modelId } as never);
+    audit(process.cwd(), "model_switch", label + " -> " + modelId,
+      ok ? "ok" : "FAIL(no api key)");
+    return ok;
+  };
+
+  pi.registerTool({
+    name: "set_review_model",
+    label: "Switch to review model",
+    description: "Switch the current session model to deepseek-v4-pro for code review " +
+      "(model separation: writer flash / reviewer pro). Call this BEFORE starting the " +
+      "review phase, then use set_writer_model to switch back after review.",
+    parameters: Type.Object({}),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const ok = await switchModel("deepseek-v4-pro", "审查");
+      return {
+        content: [{ type: "text", text: ok
+          ? "已切换到审查模型 deepseek-v4-pro（模型分离生效）。审查完成后调用 set_writer_model 切回。"
+          : "切换失败：deepseek 无可用 API key（检查 ~/.pi/agent/auth.json）" }],
+        details: {},
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "set_writer_model",
+    label: "Switch to writer model",
+    description: "Switch the current session model back to deepseek-v4-flash (writer model). " +
+      "Call after the review phase is done to restore the default writer model.",
+    parameters: Type.Object({}),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const ok = await switchModel("deepseek-v4-flash", "编写");
+      return {
+        content: [{ type: "text", text: ok ? "已切回编写模型 deepseek-v4-flash" : "切换失败" }],
+        details: {},
+      };
+    },
   });
 
   pi.on("tool_call", async (event, ctx) => {
