@@ -46,6 +46,8 @@ def main():
     parser.add_argument("--type", default="large", choices=["large", "small", "fix"],
                         help="任务类型（默认 large）")
     parser.add_argument("--dir", default=".", help="工作目录（默认当前目录）")
+    parser.add_argument("--no-watch", action="store_true",
+                        help="不自动打开观察窗")
     args = parser.parse_args()
 
     cwd = os.path.abspath(args.dir)
@@ -81,7 +83,19 @@ def main():
     with open(state_path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
 
-    # 4. 提示
+    # 4. 自动打开观察窗（默认；--no-watch 关闭）
+    if not args.no_watch:
+        open_watch = os.path.join(VIBEKIT_SCRIPTS, "open_watch.py")
+        if not os.path.exists(open_watch):
+            open_watch = os.path.join(os.path.dirname(os.path.abspath(__file__)), "open_watch.py")
+        try:
+            subprocess.Popen([sys.executable, open_watch, "--dir", cwd],
+                             cwd=cwd, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+            print("  观察窗: 已自动打开（标题=任务名）")
+        except Exception as e:
+            print(f"  [WARN] 观察窗自动打开失败: {e}（可手动 vibekit open-watch）")
+
+    # 5. 提示
     print("=" * 60)
     print("✅ 任务已从需求文件启动")
     print("=" * 60)
