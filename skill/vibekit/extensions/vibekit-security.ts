@@ -126,6 +126,28 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // ---- 思考层级切换（配合模型路由表） ----
+  // flash 支持 low/high/max；pro 只有 high/max（pi 自动 clamp）
+  pi.registerTool({
+    name: "set_thinking_level",
+    label: "Set thinking level",
+    description: "Set thinking level: low / high / max (auto-clamped to model capability). " +
+      "Model routing: conceive high, plan high, isolate low, execute high, verify low, " +
+      "review high, integrate low. Call at phase transitions for cost efficiency.",
+    parameters: Type.Object({
+      level: Type.Union([Type.Literal("low"), Type.Literal("high"), Type.Literal("max")]),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const level = params.level as "low" | "high" | "max";
+      pi.setThinkingLevel(level as never);
+      audit(process.cwd(), "thinking_switch", level, "ok");
+      return {
+        content: [{ type: "text", text: "思考层级已切换为 " + level + "（审计已记录）" }],
+        details: {},
+      };
+    },
+  });
+
   pi.on("tool_call", async (event, ctx) => {
     const { toolName, input } = event;
     const cwd = process.cwd();

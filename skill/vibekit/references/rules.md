@@ -53,17 +53,63 @@
 - **可视化/度量**：`dashboard.py` 看运行状态，`metrics.py` 看统计数据
 - **多角色落地**：审查者用独立会话 + 切换 pro 模型（详见 `references/agents.md`）
 
-## 三、上下文管理（token 优化）
+## 三、模型路由（模型 × 思考层级）
+
+两个可用模型（DeepSeek，能力来自 models-store.json）：
+
+| | deepseek-v4-flash | deepseek-v4-pro |
+|---|---|---|
+| 支持思考层级 | **low / high / max**（无 medium） | **只有 high / max**（无 low/medium） |
+| 成本（in/out） | 0.14 / 0.28 | 0.435 / 0.87（3 倍） |
+| 定位 | 快、便宜、量大 | 深、贵、慢 |
+
+### 静态路由表（默认按此执行）
+
+| 阶段 | 模型 | 思考 | 理由 |
+|:-:|:-:|:-:|------|
+| ① 构思 | **pro** | high | 验收标准定错全白干——一次性质量 |
+| ② 计划 | flash | high | 拆任务/风险点足够；架构级设计临时升 pro |
+| ③ 隔离 | **flash** | **low** | 纯机械（检查点 A/边界声明） |
+| ④ 执行 | **flash** | high | 量大价低；high 减少验证返工 |
+| ⑤ 验证 | **flash** | **low** | 跑命令零思考；结果判断 low 够 |
+| ⑥ 审查 | **pro** | high | 深度推理找 bug——pro 主场（独立性 > 思考层级） |
+| ⑦ 集成 | **flash** | **low** | 文档/ADR/提交 = 机械+轻写作 |
+
+切换工具（extension 提供，模型自主调用，审计记录 model_switch/thinking_switch）：
+- `set_review_model` / `set_writer_model`：flash ↔ pro
+- `set_thinking_level <low|high|max>`：切思考层级（pi 自动 clamp 到模型能力）
+
+### 动态触发条件（信号驱动，不随意）
+
+| 触发 | 调整 |
+|------|------|
+| 需求一句话说清（小任务） | ① 降 flash-high（省 pro） |
+| 计划跨 3+ 文件 / 架构级 | ② 升 pro-high |
+| 执行遇不熟的框架 API | ④ 临时 pro-high；⑤ 用 mock 拦截验证参数传递 |
+| 验证反复返工（同阶段循环 2 次+） | ④ 升档——"思考不足"信号 |
+| 审查 S/A 级问题多 | ⑥ 保持 pro，必要时 max |
+| 极小改动（一行配置） | 全程 flash-low，⑥ 若走审查保持 pro |
+
+### 原则（面试可讲）
+
+1. **pro 只花在"判断质量直接决定结果"的环节**（构思验收标准、审查找 bug）；
+   执行写代码量大 → flash 性价比主场
+2. **思考层级跟着"是否会被下游复验"走**：会被验证/审查兜底的环节可降思考；
+   无兜底环节（构思/审查）必须 high
+3. **flash 无 medium**——直接 low/high 二选一，不要规划 medium
+4. **审查独立性 > 审查思考层级**：不同模型+信息隔离 强于 同模型 max 自审
+5. **静态映射保下限，动态触发保上限**；返工信号比主观判断准
+
+## 四、上下文管理（token 优化）
 
 - **渐进式披露**：SKILL.md 是骨架常驻；进入阶段读 `references/stages.md` 对应小节，
   遇规则冲突读 `references/rules.md`——不一次读完全部 references
 - **审查瘦身**：prepare_review.py 只生成变更清单（无全量 diff），审查者按需查看
-- **思考级别**：构思/审查 high、执行 low/medium（可在 /settings 调整）
 - **自动压缩**：pi 的 compaction 默认开启（保留最近 ~20K token，更早自动摘要）；
   长任务先 `summary.py` 生成摘要，再 `/compact` 用摘要恢复脉络
 - **提示缓存友好**：不频繁改写 SKILL.md/AGENTS.md（系统提示稳定 → 缓存命中率高）
 
-## 四、错误用法示例（本项目参考教训）
+## 五、错误用法示例（本项目参考教训）
 
 参考 `D:\No.1\practice\AIMianshi\docs\model-selection.md` 中记录的 LangChain 参数丢失问题：
 

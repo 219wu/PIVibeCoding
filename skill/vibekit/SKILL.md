@@ -85,7 +85,9 @@ Vibe Coding 不是"随便让 AI 写代码"，而是**用结构化流水线把 AI
    deepseek-v4-pro（extension 提供；不可用时用户 `/model deepseek-v4-pro`），审查完
    调 `set_writer_model` 切回；审查只读输入包（信息隔离）
 5. **安全红线**：破坏性命令先过 `check-command`；密钥文件禁止读写；hooks 不得绕过
-6. **ADR 强制**：有决策必须落盘 docs/decisions/；思考级别：构思/审查 high、执行 low
+6. **ADR 强制**：有决策必须落盘 docs/decisions/
+7. **模型路由**：阶段×模型×思考层级见 `references/rules.md` 第三节（构思/审查 pro-high，
+   执行 flash-high，隔离/验证/集成 flash-low），动态调整看触发条件，切换用 extension 工具
 
 ## 六、使用方式
 
