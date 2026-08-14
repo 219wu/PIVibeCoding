@@ -150,11 +150,19 @@ export default function (pi: ExtensionAPI) {
       level: Type.Union([Type.Literal("low"), Type.Literal("high"), Type.Literal("max")]),
     }),
     async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const level = params.level as "low" | "high" | "max";
+      let level = params.level as "low" | "high" | "max";
+      // 防御 pi 压缩崩溃：deepseek-v4-pro 只支持 high/max（thinkingLevelMap 仅 high/max），
+      // 在 pro 下调 low 会触发 getSupportedThinkingLevels 返回 undefined → includes 崩溃
+      try {
+        const cur = pi.getModel();
+        if (cur?.id === "deepseek-v4-pro" && level === "low") {
+          level = "high";
+        }
+      } catch { /* 忽略 */ }
       pi.setThinkingLevel(level as never);
       audit(process.cwd(), "thinking_switch", level, "ok");
       return {
-        content: [{ type: "text", text: "思考层级已切换为 " + level + "（审计已记录）" }],
+        content: [{ type: "text", text: "思考层级已切换为 " + level + "（pro 下自动 clamp，审计已记录）" }],
         details: {},
       };
     },
