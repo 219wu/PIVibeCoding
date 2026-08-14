@@ -88,6 +88,17 @@ export default function (pi: ExtensionAPI) {
   // 模型可在审查阶段自主调用（比用户手动 /model 强），切换记录进审计日志
   const switchModel = async (modelId: string, label: string) => {
     const ok = await pi.setModel({ provider: "deepseek", id: modelId } as never);
+    if (ok && modelId === "deepseek-v4-pro") {
+      // 防御 pi 压缩 bug：pro 只支持 high/max，确保切到 high（压缩用当前模型时避免
+      // availableLevels.includes 边界崩溃）
+      try {
+        const cur = pi.getThinkingLevel();
+        if (cur === "low" || cur === "minimal") {
+          pi.setThinkingLevel("high" as never);
+          audit(process.cwd(), "thinking_switch", "low->high (pro 兼容)", "ok");
+        }
+      } catch { /* 忽略 */ }
+    }
     audit(process.cwd(), "model_switch", label + " -> " + modelId,
       ok ? "ok" : "FAIL(no api key)");
     return ok;
@@ -133,7 +144,8 @@ export default function (pi: ExtensionAPI) {
     label: "Set thinking level",
     description: "Set thinking level: low / high / max (auto-clamped to model capability). " +
       "Model routing: conceive high, plan high, isolate low, execute high, verify low, " +
-      "review high, integrate low. Call at phase transitions for cost efficiency.",
+      "review high, integrate low. NOTE: deepseek-v4-pro only supports high/max (pi " +
+      "auto-clamps); flash supports low/high/max. Call at phase transitions.",
     parameters: Type.Object({
       level: Type.Union([Type.Literal("low"), Type.Literal("high"), Type.Literal("max")]),
     }),
