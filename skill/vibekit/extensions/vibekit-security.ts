@@ -86,10 +86,25 @@ export default function (pi: ExtensionAPI) {
 
   // ---- 模型分离：审查用 pro，编写用 flash ----
   // 模型可在审查阶段自主调用（比用户手动 /model 强），切换记录进审计日志
+  /** 从 models-store.json 读取真实 Model 条目（pi 的 Model 序列化格式）。
+   *  不能用 {provider,id} 假对象：切换后模型继续运行时，pi 会读取
+   *  model.api/baseUrl/compat/cost 等缺失字段 → includes 崩溃。 */
+  const getRealModel = (provider: string, id: string): Record<string, unknown> | null => {
+    try {
+      const storePath = path.join(os.homedir(), ".pi", "agent", "models-store.json");
+      const store = JSON.parse(fs.readFileSync(storePath, "utf8"));
+      const list = store?.[provider]?.models;
+      if (Array.isArray(list)) {
+        const m = list.find((x: { id?: string }) => x.id === id);
+        if (m) return m;
+      }
+    } catch { /* 读不到则回退假对象 */ }
+    return null;
+  };
+
   const switchModel = async (modelId: string, label: string) => {
     // 关键：pi.setModel(pro) 内部会用【当前 thinking level】调 setThinkingLevel，
-    // 若当前是 low（执行阶段 flash-low 残留）→ pro 上 getSupportedThinkingLevels
-    // 返回 undefined → includes 崩溃。所以必须先升 high 再切模型。
+    // 若当前是 low（执行阶段 flash-low 残留）→ pro 上 thinking 解析异常。先升 high。
     if (modelId === "deepseek-v4-pro") {
       try {
         const cur = pi.getThinkingLevel();
@@ -99,9 +114,11 @@ export default function (pi: ExtensionAPI) {
         }
       } catch { /* 忽略 */ }
     }
-    const ok = await pi.setModel({ provider: "deepseek", id: modelId } as never);
-    audit(process.cwd(), "model_switch", label + " -> " + modelId,
-      ok ? "ok" : "FAIL(no api key)");
+    const real = getRealModel("deepseek", modelId);
+    const target = real ?? { provider: "deepseek", id: modelId };
+    const ok = await pi.setModel(target as never);
+    audit(process.cwd(), "model_switch", label + " -> " + modelId +
+      (real ? " (real model)" : " (fallback fake)"), ok ? "ok" : "FAIL(no api key)");
     return ok;
   };
 
