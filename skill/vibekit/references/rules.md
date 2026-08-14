@@ -90,6 +90,15 @@
 | 审查 S/A 级问题多 | ⑥ 保持 pro，必要时 max |
 | 极小改动（一行配置） | 全程 flash-low，⑥ 若走审查保持 pro |
 
+### 切换纪律（防 pi 压缩崩溃）
+
+- **切到 pro 前必须先把思考级别升到 high**（pro 只支持 high/max）。
+  低级别残留（执行阶段 flash-low）会在 pi.setModel 内部触发
+  getSupportedThinkingLevels 返回 undefined → 压缩崩溃（pi 0.82.1）
+- extension 已内置此防御（set_review_model 先升 high 再切 pro）；
+  手动 /model 切换时也遵循同样顺序：先 /settings 升 high，再 /model
+- 审查结束 set_writer_model 切回 flash 后，可按路由表恢复到 low（flash 支持 low）
+
 ### 原则（面试可讲）
 
 1. **pro 只花在"判断质量直接决定结果"的环节**（构思验收标准、审查找 bug）；

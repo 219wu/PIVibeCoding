@@ -87,18 +87,19 @@ export default function (pi: ExtensionAPI) {
   // ---- 模型分离：审查用 pro，编写用 flash ----
   // 模型可在审查阶段自主调用（比用户手动 /model 强），切换记录进审计日志
   const switchModel = async (modelId: string, label: string) => {
-    const ok = await pi.setModel({ provider: "deepseek", id: modelId } as never);
-    if (ok && modelId === "deepseek-v4-pro") {
-      // 防御 pi 压缩 bug：pro 只支持 high/max，确保切到 high（压缩用当前模型时避免
-      // availableLevels.includes 边界崩溃）
+    // 关键：pi.setModel(pro) 内部会用【当前 thinking level】调 setThinkingLevel，
+    // 若当前是 low（执行阶段 flash-low 残留）→ pro 上 getSupportedThinkingLevels
+    // 返回 undefined → includes 崩溃。所以必须先升 high 再切模型。
+    if (modelId === "deepseek-v4-pro") {
       try {
         const cur = pi.getThinkingLevel();
         if (cur === "low" || cur === "minimal") {
           pi.setThinkingLevel("high" as never);
-          audit(process.cwd(), "thinking_switch", "low->high (pro 兼容)", "ok");
+          audit(process.cwd(), "thinking_switch", "low->high (先于切 pro)", "ok");
         }
       } catch { /* 忽略 */ }
     }
+    const ok = await pi.setModel({ provider: "deepseek", id: modelId } as never);
     audit(process.cwd(), "model_switch", label + " -> " + modelId,
       ok ? "ok" : "FAIL(no api key)");
     return ok;
