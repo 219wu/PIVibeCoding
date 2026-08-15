@@ -18,7 +18,7 @@
  *
  * 兼容性：正则全部用 new RegExp 字符串形式（避免 TS 解析器对正则字面量的兼容问题）。
  */
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -102,40 +102,29 @@ export default function (pi: ExtensionAPI) {
     return null;
   };
 
-  const switchModel = async (modelId: string, label: string) => {
-    // 关键：pi.setModel(pro) 内部会用【当前 thinking level】调 setThinkingLevel，
-    // 若当前是 low（执行阶段 flash-low 残留）→ pro 上 thinking 解析异常。先升 high。
-    if (modelId === "deepseek-v4-pro") {
+  /** 官方推荐方式（参照 examples/extensions/preset.ts）：
+   *  用 ctx.modelRegistry.find 拿【运行时 Model 实例】（与手动 /model 同源），
+   *  绝不自己构造 {provider,id} / store 条目——那些缺运行时字段（api 对象等），
+   *  切换后 pi 读取缺失字段会 .includes 崩溃。 */
+  const switchModel = async (ctx: ExtensionContext, modelId: string, label: string) => {
+    const model = ctx.modelRegistry.find("deepseek", modelId);
+    if (!model) {
+      audit(process.cwd(), "model_switch", label + " -> " + modelId, "FAIL(model not found)");
+      return false;
+    }
+    const ok = await pi.setModel(model as never);
+    // pro 只支持 high/max：切到 pro 后确保思考级别 >= high（审查需要）
+    if (ok && modelId === "deepseek-v4-pro") {
       try {
-        const cur = pi.getThinkingLevel();
-        if (cur === "low" || cur === "minimal") {
+        const lv = pi.getThinkingLevel();
+        if (lv !== "high" && lv !== "max") {
           pi.setThinkingLevel("high" as never);
-          audit(process.cwd(), "thinking_switch", "low->high (先于切 pro)", "ok");
+          audit(process.cwd(), "thinking_switch", "-> high (pro 兼容)", "ok");
         }
       } catch { /* 忽略 */ }
     }
-    // 构造运行时完整的 Model 对象：
-    // 以当前模型（pi.getModel()，api 为对象、字段完整）为基底，
-    // 用 store 里目标模型的特有字段（cost/thinkingLevelMap 等）覆盖，
-    // 但保留基底的 api 对象（store 的 api 是字符串，覆盖会损坏）。
-    let target: Record<string, unknown> | null = null;
-    try {
-      const cur = pi.getModel();
-      const real = getRealModel("deepseek", modelId);
-      if (cur) {
-        target = { ...cur };
-        if (real) {
-          for (const [k, v] of Object.entries(real)) {
-            if (k !== "api") target[k] = v;   // 跳过 api（保留运行时 api 对象）
-          }
-        } else {
-          target.id = modelId;
-        }
-      }
-    } catch { /* 读不到则回退 */ }
-    const ok = await pi.setModel((target ?? { provider: "deepseek", id: modelId }) as never);
-    audit(process.cwd(), "model_switch", label + " -> " + modelId +
-      (target ? " (runtime-model)" : " (fallback fake)"), ok ? "ok" : "FAIL(no api key)");
+    audit(process.cwd(), "model_switch", label + " -> " + modelId,
+      ok ? "ok" : "FAIL(no api key)");
     return ok;
   };
 
@@ -147,7 +136,7 @@ export default function (pi: ExtensionAPI) {
       "review phase, then use set_writer_model to switch back after review.",
     parameters: Type.Object({}),
     async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const ok = await switchModel("deepseek-v4-pro", "审查");
+      const ok = await switchModel(ctx, "deepseek-v4-pro", "审查");
       return {
         content: [{ type: "text", text: ok
           ? "已切换到审查模型 deepseek-v4-pro（模型分离生效）。审查完成后调用 set_writer_model 切回。"
@@ -164,7 +153,7 @@ export default function (pi: ExtensionAPI) {
       "Call after the review phase is done to restore the default writer model.",
     parameters: Type.Object({}),
     async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const ok = await switchModel("deepseek-v4-flash", "编写");
+      const ok = await switchModel(ctx, "deepseek-v4-flash", "编写");
       return {
         content: [{ type: "text", text: ok ? "已切回编写模型 deepseek-v4-flash" : "切换失败" }],
         details: {},
