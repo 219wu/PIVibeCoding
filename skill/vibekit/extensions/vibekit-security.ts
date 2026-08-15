@@ -114,11 +114,28 @@ export default function (pi: ExtensionAPI) {
         }
       } catch { /* 忽略 */ }
     }
-    const real = getRealModel("deepseek", modelId);
-    const target = real ?? { provider: "deepseek", id: modelId };
-    const ok = await pi.setModel(target as never);
+    // 构造运行时完整的 Model 对象：
+    // 以当前模型（pi.getModel()，api 为对象、字段完整）为基底，
+    // 用 store 里目标模型的特有字段（cost/thinkingLevelMap 等）覆盖，
+    // 但保留基底的 api 对象（store 的 api 是字符串，覆盖会损坏）。
+    let target: Record<string, unknown> | null = null;
+    try {
+      const cur = pi.getModel();
+      const real = getRealModel("deepseek", modelId);
+      if (cur) {
+        target = { ...cur };
+        if (real) {
+          for (const [k, v] of Object.entries(real)) {
+            if (k !== "api") target[k] = v;   // 跳过 api（保留运行时 api 对象）
+          }
+        } else {
+          target.id = modelId;
+        }
+      }
+    } catch { /* 读不到则回退 */ }
+    const ok = await pi.setModel((target ?? { provider: "deepseek", id: modelId }) as never);
     audit(process.cwd(), "model_switch", label + " -> " + modelId +
-      (real ? " (real model)" : " (fallback fake)"), ok ? "ok" : "FAIL(no api key)");
+      (target ? " (runtime-model)" : " (fallback fake)"), ok ? "ok" : "FAIL(no api key)");
     return ok;
   };
 
